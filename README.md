@@ -1,9 +1,15 @@
 # BillScanner - Smart Bill, Receipt & PO to Excel Interceptor
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-teal?style=for-the-badge&logo=github)](https://ommahindroo.github.io/BillManagerApp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+> **🚀 Try it Live Online:** [https://ommahindroo.github.io/BillManagerApp/](https://ommahindroo.github.io/BillManagerApp/)
+> Anyone can drop in bill images or multi-page PDFs to extract line-item tables and export to Excel directly in their browser without installing anything!
+
 A comprehensive suite for converting scanned paper bills, commercial invoices, and multi-page purchase orders directly into **Microsoft Excel (`.xlsx`)** spreadsheets and **Google Sheets**.
 
 Includes:
-1. **Desktop App (`desktop-app/`)**: High-performance React + Vite web/desktop app that intercepts documents from external hardware scanners, folders, drag-and-drop, multi-page PDFs, or clipboard screenshots. Features multi-page PDF processing with up to 40+ itemized lines (quantities, MRP, GST, SGST, CGST, final amounts), interactive preview verification, and direct `.xlsx` spreadsheet management.
+1. **Desktop / Web App (`desktop-app/`)**: High-performance React + Vite web application that intercepts documents from external hardware scanners, folders, drag-and-drop, multi-page PDFs, or clipboard screenshots. Features multi-page PDF processing with up to 40+ itemized lines (quantities, MRP, GST, SGST, CGST, final amounts), interactive preview verification, and direct `.xlsx` spreadsheet management.
 2. **Android Mobile App (`app/`)**: Native Android app built with Kotlin, Jetpack Compose, ML Kit Document Scanner, and Apache POI.
 
 ---

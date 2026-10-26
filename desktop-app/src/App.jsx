@@ -276,7 +276,8 @@ export default function App() {
   const handleSimulateExternalScan = async () => {
     try {
       showToast('Simulating incoming document from External Scanner...', 'info');
-      const response = await fetch('/sample_tech.jpg');
+      const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+      const response = await fetch(`${baseUrl}sample_tech.jpg`);
       const blob = await response.blob();
       const file = new File([blob], `Scanner_Scan_${Date.now()}.jpg`, { type: 'image/jpeg' });
       handleImageSelected(file, 'External Scanner (Hardware Feed)');

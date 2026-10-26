@@ -211,102 +211,109 @@ export default function DropZone({
           <span>Test Samples:</span>
         </span>
 
-        <button 
-          className="sample-pill po-pill"
-          onClick={async () => {
-            try {
-              const res = await fetch('/sample_natures_basket_5page.pdf');
-              const blob = await res.blob();
-              const file = new File([blob], 'Natures_Basket_PO_5Page_40Items.pdf', { type: 'application/pdf' });
-              onImageSelected(file, 'M/s Natures Basket 5-Page Purchase Order (40 Items PDF)');
-            } catch (err) {
-              console.error('Failed to load 5-page sample PDF:', err);
-            }
-          }}
-          disabled={isProcessing}
-          title="Test processing the full 5-page Nature's Basket Purchase Order with 40 line items"
-        >
-          📑 Natures Basket 5-Page PO (40 Items PDF)
-        </button>
+        {(() => {
+          const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+          return (
+            <>
+              <button 
+                className="sample-pill po-pill"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${baseUrl}sample_natures_basket_5page.pdf`);
+                    const blob = await res.blob();
+                    const file = new File([blob], 'Natures_Basket_PO_5Page_40Items.pdf', { type: 'application/pdf' });
+                    onImageSelected(file, 'M/s Natures Basket 5-Page Purchase Order (40 Items PDF)');
+                  } catch (err) {
+                    console.error('Failed to load 5-page sample PDF:', err);
+                  }
+                }}
+                disabled={isProcessing}
+                title="Test processing the full 5-page Nature's Basket Purchase Order with 40 line items"
+              >
+                📑 Natures Basket 5-Page PO (40 Items PDF)
+              </button>
 
-        <button 
-          className="sample-pill po-pill"
-          onClick={async () => {
-            try {
-              const res = await fetch('/sample_pacific_invoice.pdf');
-              const blob = await res.blob();
-              const file = new File([blob], 'Pacific_Crest_Export_Invoice.pdf', { type: 'application/pdf' });
-              onImageSelected(file, 'Pacific Crest Commercial Invoice (7 Items PDF)');
-            } catch (err) {
-              console.error('Failed to load Pacific sample PDF:', err);
-            }
-          }}
-          disabled={isProcessing}
-          title="Test processing the 7 line-items Pacific Crest Commercial Invoice PDF"
-        >
-          📦 Pacific Crest Invoice (7 Items PDF)
-        </button>
+              <button 
+                className="sample-pill po-pill"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${baseUrl}sample_pacific_invoice.pdf`);
+                    const blob = await res.blob();
+                    const file = new File([blob], 'Pacific_Crest_Export_Invoice.pdf', { type: 'application/pdf' });
+                    onImageSelected(file, 'Pacific Crest Commercial Invoice (7 Items PDF)');
+                  } catch (err) {
+                    console.error('Failed to load Pacific sample PDF:', err);
+                  }
+                }}
+                disabled={isProcessing}
+                title="Test processing the 7 line-items Pacific Crest Commercial Invoice PDF"
+              >
+                📦 Pacific Crest Invoice (7 Items PDF)
+              </button>
 
-        <button 
-          className="sample-pill po-pill"
-          onClick={async () => {
-            try {
-              const res = await fetch('/sample_apex_invoice.pdf');
-              const blob = await res.blob();
-              const file = new File([blob], 'Apex_Supply_Solutions_Invoice.pdf', { type: 'application/pdf' });
-              onImageSelected(file, 'Apex Supply Solutions Tax Invoice (9 Items PDF)');
-            } catch (err) {
-              console.error('Failed to load Apex sample PDF:', err);
-            }
-          }}
-          disabled={isProcessing}
-          title="Test processing the 9 line-items Apex Supply Solutions Tax Invoice PDF"
-        >
-          📑 Apex Tax Invoice (9 Items PDF)
-        </button>
+              <button 
+                className="sample-pill po-pill"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${baseUrl}sample_apex_invoice.pdf`);
+                    const blob = await res.blob();
+                    const file = new File([blob], 'Apex_Supply_Solutions_Invoice.pdf', { type: 'application/pdf' });
+                    onImageSelected(file, 'Apex Supply Solutions Tax Invoice (9 Items PDF)');
+                  } catch (err) {
+                    console.error('Failed to load Apex sample PDF:', err);
+                  }
+                }}
+                disabled={isProcessing}
+                title="Test processing the 9 line-items Apex Supply Solutions Tax Invoice PDF"
+              >
+                📑 Apex Tax Invoice (9 Items PDF)
+              </button>
 
-        <button 
-          className="sample-pill po-pill"
-          onClick={() => handleLoadSample('/sample_purchase_order.png', 'M/s Natures Basket PO (3 Items)')}
-          disabled={isProcessing}
-          title="Test with the 3 line-items purchase order"
-        >
-          📋 Natures Basket PO (3 Items)
-        </button>
+              <button 
+                className="sample-pill po-pill"
+                onClick={() => handleLoadSample(`${baseUrl}sample_purchase_order.png`, 'M/s Natures Basket PO (3 Items)')}
+                disabled={isProcessing}
+                title="Test with the 3 line-items purchase order"
+              >
+                📋 Natures Basket PO (3 Items)
+              </button>
 
-        <button 
-          className="sample-pill"
-          onClick={() => handleLoadSample('/sample_grocery.jpg', 'Supermarket Scanner File')}
-          disabled={isProcessing}
-        >
-          🛒 Grocery Bill
-        </button>
+              <button 
+                className="sample-pill"
+                onClick={() => handleLoadSample(`${baseUrl}sample_grocery.jpg`, 'Supermarket Scanner File')}
+                disabled={isProcessing}
+              >
+                🛒 Grocery Bill
+              </button>
 
-        <button 
-          className="sample-pill"
-          onClick={() => handleLoadSample('/sample_tech.jpg', 'Computer Store Invoice Scan')}
-          disabled={isProcessing}
-        >
-          💻 Computer Store Scan
-        </button>
+              <button 
+                className="sample-pill"
+                onClick={() => handleLoadSample(`${baseUrl}sample_tech.jpg`, 'Computer Store Invoice Scan')}
+                disabled={isProcessing}
+              >
+                💻 Computer Store Scan
+              </button>
 
-        <button 
-          className="sample-pill pdf-pill"
-          onClick={async () => {
-            try {
-              const res = await fetch('/sample_invoice.pdf');
-              const blob = await res.blob();
-              const file = new File([blob], 'Office_Supplies_Invoice.pdf', { type: 'application/pdf' });
-              onImageSelected(file, 'Office Supplies PDF Invoice');
-            } catch (err) {
-              console.error('Failed to load sample PDF:', err);
-            }
-          }}
-          disabled={isProcessing}
-          title="Test processing a PDF bill document"
-        >
-          📄 Sample PDF Invoice
-        </button>
+              <button 
+                className="sample-pill pdf-pill"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${baseUrl}sample_invoice.pdf`);
+                    const blob = await res.blob();
+                    const file = new File([blob], 'Office_Supplies_Invoice.pdf', { type: 'application/pdf' });
+                    onImageSelected(file, 'Office Supplies PDF Invoice');
+                  } catch (err) {
+                    console.error('Failed to load sample PDF:', err);
+                  }
+                }}
+                disabled={isProcessing}
+                title="Test processing a PDF bill document"
+              >
+                📄 Sample PDF Invoice
+              </button>
+            </>
+          );
+        })()}
       </div>
     </div>
   );

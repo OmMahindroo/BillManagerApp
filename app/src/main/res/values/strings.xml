@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">BillScanner</string>
+    <string name="scan_bill">Scan Bill</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="history">History</string>
+    <string name="spreadsheets">Spreadsheets</string>
+    <string name="active_spreadsheet">Active Spreadsheet</string>
+    <string name="continue_adding">Continue adding to this file</string>
+    <string name="create_new_excel">Create New Excel File</string>
+    <string name="create_new_google_sheet">Create New Google Sheet</string>
+    <string name="choose_existing">Choose Existing Spreadsheet</string>
+</resources>

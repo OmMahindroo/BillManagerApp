@@ -1,0 +1,40 @@
+# Built application files
+*.apk
+*.aar
+*.aab
+build/
+*/build/
+.gradle/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log files
+*.log
+logs/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+
+# VS Code
+.vscode/
+
+# Node / Web App (desktop-app)
+node_modules/
+desktop-app/node_modules/
+desktop-app/dist/
+desktop-app/dist-ssr/
+*.local
+.env*
+!.env.example
+
+# OS / temporary files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp

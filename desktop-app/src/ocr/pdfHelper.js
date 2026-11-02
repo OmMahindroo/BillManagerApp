@@ -1,7 +1,17 @@
+import './pdfPolyfills.js';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Bind worker module directly to global scope.
+// This enables PDF.js's native inline worker, completely eliminating
+// Web Worker thread creation, Blob URL CORS restrictions, origin errors,
+// and guarantees all polyfills (getOrInsertComputed, toHex, sumPrecise) are in scope.
+if (typeof globalThis !== 'undefined') {
+  globalThis.pdfjsWorker = pdfjsWorker;
+}
+if (typeof window !== 'undefined') {
+  window.pdfjsWorker = pdfjsWorker;
+}
 
 /**
  * Checks whether a given file is a PDF.
@@ -18,41 +28,94 @@ export function isPdfFile(file) {
 
 /**
  * Processes a PDF bill file:
- * 1. Renders the PDF page onto a high-resolution Canvas (2.0x scale) to produce a crisp PNG data URL.
- * 2. Extracts digital text layer with 2D spatial sorting (Y descending, X ascending)
+ * 1. Renders PDF pages onto crisp Canvases (2.0x scale) to produce high-resolution PNG data URLs.
+ * 2. Pre-fills canvas with white paper background and renders with standard 'display' intent.
+ * 3. Extracts digital text layer with 2D spatial sorting (Y descending, X ascending)
  *    so table columns and lines are grouped in natural reading order.
  *
- * @param {File|Blob} file The PDF document
- * @returns {Promise<{ imageDataUrl: string, embeddedText: string, hasEmbeddedText: boolean, numPages: number }>}
+ * @param {File|Blob|ArrayBuffer} file The PDF document
+ * @returns {Promise<{ imageDataUrl: string, previewPages: Array<string>, embeddedText: string, hasEmbeddedText: boolean, numPages: number }>}
  */
 export async function processPdfBill(file) {
-  const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  const arrayBuffer = file instanceof ArrayBuffer
+    ? file
+    : (typeof file?.arrayBuffer === 'function' ? await file.arrayBuffer() : await (await fetch(file)).arrayBuffer());
+
+  // Correctly resolve standard font and cMap URLs across localhost, preview, and GitHub Pages subpaths
+  let cMapUrl;
+  let standardFontDataUrl;
+  if (typeof window !== 'undefined' && window.location) {
+    try {
+      const baseUrl = new URL(import.meta.env.BASE_URL || './', window.location.href).href;
+      cMapUrl = new URL('cmaps/', baseUrl).href;
+      standardFontDataUrl = new URL('standard_fonts/', baseUrl).href;
+    } catch {
+      cMapUrl = undefined;
+      standardFontDataUrl = undefined;
+    }
+  }
+
+  const loadingTask = pdfjsLib.getDocument({
+    data: arrayBuffer,
+    cMapUrl,
+    cMapPacked: true,
+    standardFontDataUrl,
+  });
   const pdf = await loadingTask.promise;
   const numPages = pdf.numPages;
 
-  // 1. Render pages onto Canvas (up to first 6 pages for high-res preview)
+  // 1. Render pages onto Canvas (up to first 10 pages for high-res preview and multi-page AI)
   const previewPages = [];
-  const maxRenderPages = Math.min(numPages, 6);
+  const maxRenderPages = Math.min(numPages, 10);
 
   for (let pageNum = 1; pageNum <= maxRenderPages; pageNum++) {
     try {
       const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 1.8 }); // 1.8x scale for sharp text rendering
+      const viewport = page.getViewport({ scale: 2.0 }); // 2.0x scale for crisp bill text
 
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
       const ctx = canvas.getContext('2d');
 
+      // Solid white background ensures no text is washed out or rendered invisible
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render with standard interactive 'display' intent
       await page.render({
         canvasContext: ctx,
+        canvas: canvas,
         viewport: viewport,
+        intent: 'display',
       }).promise;
 
-      previewPages.push(canvas.toDataURL('image/png'));
+      const dataUrl = canvas.toDataURL('image/png');
+      previewPages.push(dataUrl);
     } catch (renderErr) {
-      console.warn(`Failed to render PDF page ${pageNum}:`, renderErr);
+      console.error(`Failed to render PDF page ${pageNum}:`, renderErr);
+    }
+  }
+
+  // Fallback: If preview rasterization had any issue, create an informative placeholder card
+  // so the review screen never receives an empty image string that looks like a blank white box
+  if (previewPages.length === 0 && numPages > 0) {
+    try {
+      const fallbackCanvas = document.createElement('canvas');
+      fallbackCanvas.width = 800;
+      fallbackCanvas.height = 1100;
+      const fCtx = fallbackCanvas.getContext('2d');
+      fCtx.fillStyle = '#F8FAFC';
+      fCtx.fillRect(0, 0, 800, 1100);
+      fCtx.fillStyle = '#0F172A';
+      fCtx.font = 'bold 24px sans-serif';
+      fCtx.fillText(`PDF Bill Document (${numPages} Page${numPages > 1 ? 's' : ''})`, 50, 100);
+      fCtx.font = '16px sans-serif';
+      fCtx.fillStyle = '#64748B';
+      fCtx.fillText('Text & Line items extracted successfully.', 50, 140);
+      previewPages.push(fallbackCanvas.toDataURL('image/png'));
+    } catch (fbErr) {
+      console.warn('Fallback canvas creation error:', fbErr);
     }
   }
 

@@ -5,36 +5,25 @@
  */
 
 export const GEMINI_MODELS = [
-  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Fast & Accurate)' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Next-Gen High Accuracy)' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro (Complex Formats)' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash (Recommended - Fast & High Accuracy)' },
+  { id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite (High Speed)' },
+  { id: 'gemini-flash-latest', name: 'Gemini Flash Latest (Stable)' },
+  { id: 'gemini-pro-latest', name: 'Gemini Pro Latest (Complex Formats)' },
 ];
 
-/**
- * Extracts line items and metadata from a bill image using Gemini Vision API.
- *
- * @param {string|File|Blob} imageSource Image base64 data URL or File
- * @param {string} apiKey User's Google Gemini API Key
- * @param {string} model Model ID (default: gemini-1.5-flash)
- * @returns {Promise<Object>} Structured bill data with line items
- */
-export async function extractBillWithGemini(imageSource, apiKey, model = 'gemini-1.5-flash') {
-  if (!apiKey || !apiKey.trim()) {
-    throw new Error('Gemini API Key is required for AI Vision extraction.');
-  }
-
-  // Convert imageSource to base64
-  let base64Data = '';
+// Helper to convert any image source (data URL, File, Blob) to base64
+async function sourceToInlineData(source) {
   let mimeType = 'image/png';
+  let base64Data = '';
 
-  if (typeof imageSource === 'string' && imageSource.startsWith('data:')) {
-    const parts = imageSource.split(',');
+  if (typeof source === 'string' && source.startsWith('data:')) {
+    const parts = source.split(',');
     mimeType = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
     base64Data = parts[1];
   } else {
-    const blob = typeof imageSource === 'string' 
-      ? await (await fetch(imageSource)).blob() 
-      : imageSource;
+    const blob = typeof source === 'string'
+      ? await (await fetch(source)).blob()
+      : source;
     mimeType = blob.type || 'image/png';
     base64Data = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -47,24 +36,74 @@ export async function extractBillWithGemini(imageSource, apiKey, model = 'gemini
     });
   }
 
-  const prompt = `You are an expert invoice and purchase order data extraction system.
-Analyze this bill / invoice / purchase order image and extract the complete data, especially EVERY itemized row in the table.
+  return {
+    inline_data: {
+      mime_type: mimeType,
+      data: base64Data,
+    },
+  };
+}
+
+/**
+ * Extracts line items and metadata from a bill image or multi-page PDF using Gemini Vision API.
+ *
+ * @param {string|File|Blob|Array<string>} imageSource Single image or array of page images
+ * @param {string} apiKey User's Google Gemini API Key
+ * @param {string} model Model ID (default: gemini-3.5-flash)
+ * @returns {Promise<Object>} Structured bill data with line items
+ */
+export async function extractBillWithGemini(imageSource, apiKey, model = 'gemini-3.5-flash') {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('Gemini API Key is required for AI Vision extraction.');
+  }
+
+  // Gracefully migrate deprecated model names
+  const activeModel = (!model || model.includes('1.5') || model.includes('2.0') || model.includes('2.5'))
+    ? 'gemini-3.5-flash'
+    : model;
+
+  // Normalize single image or multi-page array
+  const sources = Array.isArray(imageSource) ? imageSource : [imageSource];
+  const imageParts = [];
+
+  for (const src of sources) {
+    if (!src) continue;
+    try {
+      const inlinePart = await sourceToInlineData(src);
+      imageParts.push(inlinePart);
+    } catch (conversionErr) {
+      console.warn('Failed to convert page image for Gemini:', conversionErr);
+    }
+  }
+
+  if (imageParts.length === 0) {
+    throw new Error('No valid document pages found to analyze.');
+  }
+
+  const prompt = `You are an expert invoice, receipt, purchase order, and delivery challan data extraction system.
+Analyze the provided document page(s). Note that documents may contain multiple pages (such as formal tax invoices, delivery challans, or purchase orders spanning multiple pages).
+
+Extract ALL valid itemized bill/invoice line items across all provided pages.
+Guidelines:
+1. If the document contains formal tax invoices alongside delivery challans, prioritize extracting the itemized line rows from the tax invoices (as they include the official rates, tax percentages, and final amounts).
+2. If multiple invoices or line items exist across pages, combine and list EVERY itemized row.
+3. Consolidate vendor name, PO/invoice number, date, and grand total.
 
 Required fields to extract:
-1. "vendor": Vendor or Company Name (e.g. M/s Natures Basket Limited or DP SOLUTIONS)
-2. "poNumber": Purchase Order / Invoice / Bill Number
+1. "vendor": Vendor or Company Name (e.g. DEE ECH PRINT N PACK LLP)
+2. "poNumber": Purchase Order / Invoice / Bill Number (e.g. PPL/2254/26-27)
 3. "date": Date of bill (normalized to YYYY-MM-DD or DD.MM.YYYY)
-4. "totalAmount": Total payable / Grand Total / Total Value as a numeric float
+4. "totalAmount": Grand Total / Final payable amount as a numeric float
 5. "totalTax": Total GST / Tax amount as a numeric float
-6. "items": A list of all line items present in the bill table. For each item:
-   - "srNo": Sequential row number (normalize 10, 20, 30 to 1, 2, 3)
-   - "description": Complete item name / description (e.g. "PLUCKK COLD PRESSED CHILLI GUAVA 250ML /P")
-   - "quantity": Ordered quantity string with unit if available (e.g. "14.000 PC" or "14")
-   - "mrp": MRP / Unit Rate as float (e.g. 109.00)
-   - "sgst": SGST tax amount or percentage as float (e.g. 25.43)
-   - "cgst": CGST tax amount or percentage as float (e.g. 25.43)
-   - "gst": Total GST for this item (SGST + CGST, e.g. 50.86)
-   - "finalAmount": Item total / net amount as float (e.g. 1017.38)
+6. "items": A list of all line items present across the bill table(s). For each item:
+   - "srNo": Sequential row number (1, 2, 3...)
+   - "description": Complete item name / description
+   - "quantity": Ordered/billed quantity string with unit if available (e.g. "4120.000" or "4120 PC")
+   - "mrp": MRP / Unit Rate as float
+   - "sgst": SGST tax amount or percentage as float
+   - "cgst": CGST tax amount or percentage as float
+   - "gst": Total GST for this item (SGST + CGST or IGST) as float
+   - "finalAmount": Item total / net amount as float
 
 Respond ONLY with a valid JSON object matching this schema, without markdown formatting or code fences:
 {
@@ -87,19 +126,15 @@ Respond ONLY with a valid JSON object matching this schema, without markdown for
   ]
 }`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+  const cleanKey = apiKey.trim();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${encodeURIComponent(cleanKey)}`;
 
   const payload = {
     contents: [
       {
         parts: [
           { text: prompt },
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: base64Data,
-            },
-          },
+          ...imageParts,
         ],
       },
     ],
@@ -113,20 +148,21 @@ Respond ONLY with a valid JSON object matching this schema, without markdown for
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'x-goog-api-key': cleanKey,
     },
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `Gemini API error: ${response.statusText}`);
+    throw new Error(errorData.error?.message || `Gemini API error (${response.status}): ${response.statusText}`);
   }
 
   const result = await response.json();
   const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
   
-  // Clean markdown if any
-  const cleanJson = rawText.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+  // Clean markdown fences if any
+  const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(cleanJson);
 
   return {

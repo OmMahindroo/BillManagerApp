@@ -97,16 +97,6 @@ export default function Navbar({
       </div>
 
       <div className="navbar-right">
-        {/* AI Model Settings Button */}
-        <button 
-          className={`btn-secondary btn-sm ${hasGeminiKey ? 'ai-active' : ''}`}
-          onClick={onOpenAiModal}
-          title={hasGeminiKey ? 'AI Vision Model Active' : 'Configure Google Gemini Vision Model'}
-        >
-          <Sparkles size={14} className={hasGeminiKey ? 'text-teal' : ''} />
-          <span>{hasGeminiKey ? 'AI Model' : 'Enable AI'}</span>
-        </button>
-
         <label className="btn-secondary btn-sm" title="Open an existing .xlsx file from your PC">
           <FolderOpen size={15} />
           <span>Open Excel</span>

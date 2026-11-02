@@ -13,7 +13,7 @@ export default function AiModelModal({
   setUseAiByDefault,
 }) {
   const [tempKey, setTempKey] = useState(apiKey || '');
-  const [tempModel, setTempModel] = useState(selectedModel || 'gemini-1.5-flash');
+  const [tempModel, setTempModel] = useState(selectedModel || 'gemini-3.5-flash');
   const [tempDefault, setTempDefault] = useState(useAiByDefault);
 
   if (!isOpen) return null;
@@ -63,7 +63,7 @@ export default function AiModelModal({
               </label>
               <input
                 type="password"
-                placeholder="AIzaSy..."
+                placeholder="AQ.Ab... or AIzaSy..."
                 value={tempKey}
                 onChange={(e) => setTempKey(e.target.value)}
                 autoFocus

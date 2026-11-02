@@ -1187,6 +1187,7 @@ kbd {
   object-fit: contain;
   border-radius: var(--radius-sm);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  background-color: #ffffff;
   transform-origin: center center;
 }
 

@@ -157,10 +157,10 @@ export default function ReviewModal({
                 type="button" 
                 className="btn-ai-extract"
                 onClick={onRunGeminiVision}
-                title="Re-extract with Google Gemini AI Vision Model"
+                title="Re-analyze bill and line items"
               >
                 <Sparkles size={14} />
-                <span>Re-Extract with AI Model</span>
+                <span>Re-Analyze Bill</span>
               </button>
             )}
             <button className="btn-icon" onClick={onClose}>
@@ -256,15 +256,23 @@ export default function ReviewModal({
                       </div>
                     ) : (
                       <div className="image-zoom-container">
-                        <img
-                          src={currentImage}
-                          alt={`Intercepted Bill Page ${activePageIndex + 1}`}
-                          className="review-image"
-                          style={{
-                            transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
-                            transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                          }}
-                        />
+                        {currentImage ? (
+                          <img
+                            src={currentImage}
+                            alt={`Intercepted Bill Page ${activePageIndex + 1}`}
+                            className="review-image"
+                            style={{
+                              transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
+                              transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                            }}
+                          />
+                        ) : (
+                          <div className="preview-fallback-box" style={{ textAlign: 'center', padding: '32px' }}>
+                            <FileText size={48} className="text-teal" style={{ margin: '0 auto 12px' }} />
+                            <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Scanned Bill Page {activePageIndex + 1}</p>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Use &ldquo;OCR Raw Text&rdquo; to view extracted content</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

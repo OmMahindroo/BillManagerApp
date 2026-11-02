@@ -20,7 +20,6 @@ import ExternalScannerModal from './components/ExternalScannerModal';
 import ReviewModal from './components/ReviewModal';
 import DestinationDialog from './components/DestinationDialog';
 import SpreadsheetViewer from './components/SpreadsheetViewer';
-import AiModelModal from './components/AiModelModal';
 
 import { performReceiptOCR } from './ocr/tesseractHelper';
 import { parseBillText } from './ocr/billParser';
@@ -47,10 +46,20 @@ export default function App() {
   const [interceptedBill, setInterceptedBill] = useState(null);
 
   // AI Vision Model State
-  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('billscanner_gemini_key') || '');
-  const [geminiModel, setGeminiModel] = useState(() => localStorage.getItem('billscanner_gemini_model') || 'gemini-1.5-flash');
-  const [useAiByDefault, setUseAiByDefault] = useState(() => localStorage.getItem('billscanner_use_ai') === 'true');
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const envKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('billscanner_gemini_key') || envKey);
+  const [geminiModel, setGeminiModel] = useState(() => {
+    const saved = localStorage.getItem('billscanner_gemini_model');
+    if (!saved || saved.includes('1.5') || saved.includes('2.0') || saved.includes('2.5')) {
+      return import.meta.env.VITE_GEMINI_MODEL || 'gemini-3.5-flash';
+    }
+    return saved;
+  });
+  const [useAiByDefault, setUseAiByDefault] = useState(() => {
+    const saved = localStorage.getItem('billscanner_use_ai');
+    if (saved !== null) return saved === 'true';
+    return Boolean(localStorage.getItem('billscanner_gemini_key') || envKey);
+  });
 
   // External Scanner State & Folder Watcher
   const [scannerStatus, setScannerStatus] = useState({
@@ -109,8 +118,15 @@ export default function App() {
         // Check if Gemini AI should run first
         if (geminiKey && useAiByDefault) {
           try {
-            setOcrProgress({ status: 'gemini', progress: 0.6, message: 'Extracting line items with Gemini AI Vision...' });
-            const aiResult = await extractBillWithGemini(previewImageSrc, geminiKey, geminiModel);
+            const pagesToAnalyze = (pdfResult.previewPages && pdfResult.previewPages.length > 0)
+              ? pdfResult.previewPages
+              : previewImageSrc;
+            setOcrProgress({ 
+              status: 'gemini', 
+              progress: 0.6, 
+              message: `Extracting line items across ${pdfResult.numPages || 1} page(s) with AI Vision...` 
+            });
+            const aiResult = await extractBillWithGemini(pagesToAnalyze, geminiKey, geminiModel);
             aiResult.previewPages = pdfResult.previewPages;
             aiResult.numPages = pdfResult.numPages;
             setInterceptedBill(aiResult);
@@ -175,7 +191,7 @@ export default function App() {
       console.error('Failed to process bill file:', err);
       setIsProcessing(false);
       setOcrProgress(null);
-      showToast('Error processing bill/PDF. Please check the file.', 'error');
+      showToast(err.message || 'Error processing bill/PDF. Please check the file.', 'error');
     }
   }, [geminiKey, geminiModel, useAiByDefault]);
 
@@ -185,19 +201,25 @@ export default function App() {
   const handleRunGeminiVision = async () => {
     if (!billImageSrc && !currentFileObject) return;
     if (!geminiKey) {
-      setIsAiModalOpen(true);
+      showToast('Vision extraction is not configured.', 'error');
       return;
     }
 
     try {
-      showToast('Analyzing line items with Google Gemini Vision...', 'info');
-      const targetSource = currentFileObject || billImageSrc;
+      showToast('Re-analyzing line items with AI Vision...', 'info');
+      const targetSource = (interceptedBill?.previewPages && interceptedBill.previewPages.length > 0)
+        ? interceptedBill.previewPages
+        : (currentFileObject || billImageSrc);
       const aiResult = await extractBillWithGemini(targetSource, geminiKey, geminiModel);
+      if (interceptedBill?.previewPages) {
+        aiResult.previewPages = interceptedBill.previewPages;
+        aiResult.numPages = interceptedBill.numPages;
+      }
       setInterceptedBill(aiResult);
       showToast(`AI Model successfully extracted ${aiResult.items.length} line items!`, 'success');
     } catch (err) {
       console.error('Gemini extraction failed:', err);
-      showToast(err.message || 'AI extraction failed. Check your API key.', 'error');
+      showToast(err.message || 'AI extraction failed.', 'error');
     }
   };
 
@@ -428,7 +450,6 @@ export default function App() {
         scannerStatus={scannerStatus}
         onOpenScannerSettings={() => setIsScannerSettingsOpen(true)}
         hasGeminiKey={!!geminiKey}
-        onOpenAiModal={() => setIsAiModalOpen(true)}
       />
 
       <main className="main-content">
@@ -480,18 +501,6 @@ export default function App() {
         autoAppendMode={autoAppendMode}
         setAutoAppendMode={setAutoAppendMode}
         onSimulateExternalScan={handleSimulateExternalScan}
-      />
-
-      {/* AI Vision Model Settings Modal */}
-      <AiModelModal
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        apiKey={geminiKey}
-        setApiKey={setGeminiKey}
-        selectedModel={geminiModel}
-        setSelectedModel={setGeminiModel}
-        useAiByDefault={useAiByDefault}
-        setUseAiByDefault={setUseAiByDefault}
       />
 
       {/* Review & Edit Modal */}

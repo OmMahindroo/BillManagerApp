@@ -469,11 +469,11 @@ export default function ReviewModal({
             {/* Footer Action Buttons */}
             <div className="modal-footer-sticky">
               <button type="button" className="btn-secondary" onClick={onClose}>
-                Discard
+                Cancel
               </button>
               <button type="submit" className="btn-primary">
                 <FileSpreadsheet size={18} />
-                <span>Save {items.length} Items to Excel...</span>
+                <span>Save to Excel ({items.length} Items)</span>
               </button>
             </div>
           </form>
